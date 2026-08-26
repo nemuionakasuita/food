@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>胃にやさしい献立ナビ</title>
+<title>胃にやさしい献立ナビ + AI</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -13,7 +13,7 @@
     margin: 0;
     padding: 16px 16px 40px;
   }
-  .header { text-align: center; padding: 10px 0 14px; }
+  .header { text-align: center; padding: 6px 0 12px; }
   .header h1 { font-size: 1.2rem; margin: 0 0 4px; }
   .header p { font-size: 0.75rem; color: #64748b; margin: 0; }
   
@@ -27,7 +27,7 @@
     margin-bottom: 12px;
   }
   
-  /* 材料タグ */
+  /* タグ */
   .tag-container { display: flex; flex-wrap: wrap; gap: 6px; }
   .tag-btn {
     appearance: none;
@@ -46,24 +46,33 @@
     font-weight: 600;
   }
   
-  /* 材料追加フォーム */
-  .add-form { display: flex; gap: 6px; margin-top: 10px; }
-  .add-input {
+  /* フォーム共通 */
+  .form-row { display: flex; gap: 6px; margin-top: 8px; }
+  .app-input {
     flex: 1;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
-    padding: 6px 10px;
+    padding: 7px 10px;
     font-size: 0.85rem;
     outline: none;
+    background: #fff;
   }
-  .add-btn {
+  .app-btn {
     background: #334155;
     color: #fff;
     border: none;
     border-radius: 8px;
-    padding: 6px 12px;
+    padding: 7px 12px;
     font-size: 0.8rem;
+    font-weight: 600;
     cursor: pointer;
+  }
+  .app-btn.ai {
+    background: #7c3aed;
+  }
+  .app-btn:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
   }
 
   /* 検索ボックス */
@@ -78,7 +87,7 @@
     background: #fff;
   }
 
-  /* レシピカード (アコーディオン) */
+  /* レシピカード */
   .recipe-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
@@ -104,12 +113,15 @@
     border-radius: 4px;
     margin-bottom: 4px;
   }
+  .badge.ai-badge {
+    background: #f5f3ff;
+    color: #7c3aed;
+  }
   .recipe-name { font-size: 0.95rem; font-weight: 700; }
   .recipe-items { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
   .toggle-icon { font-size: 0.8rem; color: #94a3b8; transition: transform 0.2s; }
   .recipe-card.open .toggle-icon { transform: rotate(180deg); }
   
-  /* 詳細エリア */
   .recipe-body {
     display: none;
     padding: 12px;
@@ -125,9 +137,6 @@
     color: #334155;
     font-size: 0.8rem;
     margin: 8px 0 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
   }
   .section-label:first-child { margin-top: 0; }
   .list-text { margin: 0; padding-left: 18px; color: #475569; }
@@ -140,36 +149,66 @@
     font-size: 0.8rem;
     color: #1e40af;
   }
+  
+  /* 設定アコーディオン */
+  .api-card {
+    background: #f1f5f9;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 12px;
+    font-size: 0.8rem;
+  }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>🍲 胃にやさしい献立ナビ</h1>
-  <p>食材・レシピ検索 ＆ 詳細つき作り置きガイド</p>
+  <h1>🍲 胃にやさしい献立ナビ + AI</h1>
+  <p>食材管理 ＆ AI自動レシピ提案</p>
 </div>
 
-<div class="section-title">📦 冷蔵庫・冷凍庫の食材（タップで選択）</div>
-<div class="card">
-  <div class="tag-container" id="tagList"></div>
-  <div class="add-form">
-    <input type="text" id="newIngredientInput" class="add-input" placeholder="新しく買った食材を追加...">
-    <button type="button" class="add-btn" onclick="addNewIngredient()">追加</button>
+<!-- API設定 -->
+<div class="api-card">
+  <div style="font-weight:700; margin-bottom:4px;">🔑 Gemini APIキー設定</div>
+  <div class="form-row" style="margin-top:0;">
+    <input type="password" id="apiKeyInput" class="app-input" placeholder="AI Studioで取得したキーを貼り付け">
+    <button type="button" class="app-btn" onclick="saveApiKey()">保存</button>
   </div>
 </div>
 
+<!-- AIレシピ自動生成エリア -->
+<div class="section-title">✨ AIにレシピを考えてもらう</div>
+<div class="card" style="border: 1px solid #ddd6fe; background: #faf5ff;">
+  <div style="font-size:0.8rem; color:#6b21a8; margin-bottom:6px;">選択中の食材やリクエストから、胃にやさしい完全レシピを生成します</div>
+  <div class="form-row">
+    <input type="text" id="aiPromptInput" class="app-input" placeholder="例: 鶏むねを使った温かいスープ、さっぱり系 など">
+    <button type="button" id="aiGenBtn" class="app-btn ai" onclick="generateRecipeWithAI()">AI生成</button>
+  </div>
+</div>
+
+<!-- 食材管理エリア -->
+<div class="section-title">📦 冷蔵庫・冷凍庫の食材（タップで選択）</div>
+<div class="card">
+  <div class="tag-container" id="tagList"></div>
+  <div class="form-row">
+    <input type="text" id="newIngredientInput" class="app-input" placeholder="新しく買った食材を追加...">
+    <button type="button" class="app-btn" onclick="addNewIngredient()">追加</button>
+  </div>
+</div>
+
+<!-- 検索＆一覧エリア -->
 <div class="section-title">🔍 レシピ検索 ＆ 作れる献立</div>
 <input type="text" id="searchInput" class="search-input" placeholder="料理名・食材名でフリー検索..." oninput="renderRecipes()">
 
 <div id="recipeContainer"></div>
 
 <script>
-// 初期食材リスト
-let allIngredients = ["鶏むね", "ささみ", "手羽元", "米", "卵", "大根", "キャベツ", "きのこ", "豆腐", "梅干し"];
-let selected = ["鶏むね", "ささみ", "手羽元", "米"];
+// ストレージ初期化
+let allIngredients = JSON.parse(localStorage.getItem("allIngredients")) || ["鶏むね", "ささみ", "手羽元", "米", "卵", "大根", "キャベツ", "きのこ", "豆腐", "梅干し"];
+let selected = JSON.parse(localStorage.getItem("selectedIngredients")) || ["鶏むね", "ささみ", "手羽元", "米"];
 
-// レシピデータベース（分量・火力・時間・冷凍方法つき）
-const recipeData = [
+const initialRecipes = [
   {
     id: 1,
     name: "炊飯器で放置！しっとり蒸し鶏",
@@ -183,12 +222,12 @@ const recipeData = [
       "おろし生姜：小さじ1/2"
     ],
     steps: [
-      "【準備】耐熱ポリ袋（アイラップ等）に鶏むね肉と調味料をすべて入れ、軽くもみ込む。",
+      "【準備】耐熱ポリ袋に鶏むね肉と調味料をすべて入れ、軽くもみ込む。",
       "【加熱】炊飯器の内釜に沸騰した熱湯を肉が浸かる深さまで注ぎ、袋を入れる。",
-      "【放置】炊飯器の「保温」ボタンを押し、**弱熱保温で60分**放置する（炊飯ボタンは押さない）。",
+      "【放置】炊飯器の「保温」ボタンを押し、弱熱保温で60分放置する（炊飯ボタンは押さない）。",
       "【仕上げ】取り出して粗熱を取り、お好みの厚さにスライスする。"
     ],
-    freeze: "【冷凍保存】完全に冷めた後、1食分ずつラップに隙間なく包み、ジッパー袋に入れて冷凍庫へ。約3週間持ちます。食べるときはレンジ500Wで約40秒温めるか、冷蔵解凍してください。"
+    freeze: "【冷凍保存】完全に冷めた後、1食分ずつラップに隙間なく包み、ジッパー袋に入れて冷凍庫へ（約3週間）。レンジ500Wで約40秒温めて解凍。"
   },
   {
     id: 2,
@@ -205,11 +244,11 @@ const recipeData = [
     ],
     steps: [
       "【下準備】鍋に手羽元、大根、水600ml、コンソメ、生姜を入れる。",
-      "【沸騰まで】**強火**にかけ、沸騰したらアクをスプーンですくい取る。",
-      "【煮込み】フタをして**弱火で20〜25分**、大根がスッと竹串が通る柔らかさになるまで煮込む。",
-      "【仕上げ】味見をして塩・こしょう少々で味を調える。"
+      "【沸騰まで】強火にかけ、沸騰したらアクをスプーンですくい取る。",
+      "【煮込み】フタをして弱火で20〜25分、大根が柔らかくなるまで煮込む。",
+      "【仕上げ】塩・こしょう少々で味を調える。"
     ],
-    freeze: "【冷凍保存】粗熱が取れたらスープごと1食分ずつ冷凍用タッパーまたは耐熱ジッパー袋へ。大根は冷凍すると少し食感が柔らかくなりますが消化に良くなります。約2週間保存可。"
+    freeze: "【冷凍保存】粗熱が取れたらスープごと1食分ずつ冷凍用タッパーまたは耐熱ジッパー袋へ（約2週間保存可）。"
   },
   {
     id: 3,
@@ -218,18 +257,18 @@ const recipeData = [
     badge: "包丁不要・超時短",
     materials: [
       "ささみ：2本（筋を取る）",
-      "お好みのきのこ（しめじ等）：1/2パック（手でほぐす）",
+      "お好みのきのこ：1/2パック（手でほぐす）",
       "酒：小さじ1",
       "白だし：小さじ1",
-      "ポン酢：適量（仕上げ用）"
+      "ポン酢：適量"
     ],
     steps: [
       "【下準備】耐熱皿に手でちぎったささみときのこを並べる。",
       "【下味】酒小さじ1、白だし小さじ1を全体に回しかける。",
-      "【加熱】ふんわりラップをかけ、**電子レンジ（600W）で3分**加熱する。",
+      "【加熱】ふんわりラップをかけ、電子レンジ（600W）で3分加熱する。",
       "【仕上げ】レンジから出し、そのまま1分蒸らして火を通す。ポン酢をかけて召し上がれ。"
     ],
-    freeze: "【下味冷凍】耐熱皿に入れる前の状態（生ささみ＋生キノコ＋調味料）をジッパー袋に入れてそのまま冷凍可能（約3週間）。食べるときは袋から出してラップをし、レンジ600Wで4分半加熱。"
+    freeze: "【下味冷凍】耐熱皿に入れる前の状態（生ささみ＋生きのこ＋調味料）を袋に入れて冷凍可能（約3週間）。レンジ600Wで4分半加熱。"
   },
   {
     id: 4,
@@ -245,54 +284,30 @@ const recipeData = [
       "おろし生姜：小さじ1/2"
     ],
     steps: [
-      "【煮込み】鍋に水300ml、白だし大さじ1.5、生姜、ご飯、ささみを入れて**中火**にかける。",
-      "【柔らかくする】沸騰したら**弱火にして約5分**コトコト煮て、ご飯を柔らかくする。",
-      "【卵を入れる】溶き卵を回し入れ、フタをして**極弱火で30秒**置き、火を止めて蒸らす。"
+      "【煮込み】鍋に水300ml、白だし大さじ1.5、生姜、ご飯、ささみを入れて中火にかける。",
+      "【柔らかくする】沸騰したら弱火にして約5分コトコト煮る。",
+      "【卵を入れる】溶き卵を回し入れ、フタをして極弱火で30秒置き、火を止めて蒸らす。"
     ],
-    freeze: "【小分け冷凍】完成した雑炊を1食分ずつ耐熱タッパーに入れて冷凍可（約1週間）。解凍時はレンジ500Wで約3分温めてください。"
-  },
-  {
-    id: 5,
-    name: "梅干し入り さっぱりおかゆ",
-    tags: ["米", "梅干し"],
-    badge: "食欲がない日に",
-    materials: [
-      "ご飯：お茶碗1杯（約150g）",
-      "水：400ml",
-      "梅干し：1個（種を取ってちぎる）",
-      "和風顆粒だし：小さじ1/2",
-      "塩：ひとつまみ"
-    ],
-    steps: [
-      "【煮込み】鍋にご飯、水400ml、顆粒だし小さじ1/2を入れて**中火**にかける。",
-      "【弱火煮込み】沸騰したら**弱火にして吹きこぼれないようフタを少しずらし、7〜8分**煮る。",
-      "【仕上げ】器に盛り、梅干しをのせる。"
-    ],
-    freeze: "【冷凍保存】タッパーに1食分ずつ入れて冷凍（約2週間）。胃が痛む朝やすぐに食べたい時にレンジ解凍で重宝します。"
-  },
-  {
-    id: 6,
-    name: "豆腐とキャベツのとろみ出汁スープ",
-    tags: ["豆腐", "キャベツ"],
-    badge: "胃粘膜保護・低カロリー",
-    materials: [
-      "豆腐（絹または木綿）：150g（スプーンですくう）",
-      "キャベツ：1枚（一口大に手でちぎる）",
-      "水：300ml",
-      "和風だしの素：小さじ1",
-      "しょうゆ：小さじ1/2",
-      "水溶き片栗粉：片栗粉小さじ1＋水小さじ2"
-    ],
-    steps: [
-      "【煮る】鍋に水300ml、だしの素小さじ1、しょうゆ小さじ1/2、キャベツを入れて**中火**にかける。",
-      "【豆腐投入】キャベツがしんなりしたら、豆腐をスプーンですくい入れ、**弱火で2分**温める。",
-      "【とろみ付け】火を一度止め、よく混ぜた水溶き片栗粉を回し入れ、**弱火でひと煮立ち**させてとろみをつける。"
-    ],
-    freeze: "【注意】豆腐は冷凍すると食感がスポンジ状に変わるため、このスープは**冷蔵保存（2日以内）**がおすすめです。"
+    freeze: "【小分け冷凍】完成した雑炊を1食分ずつ耐熱タッパーに入れて冷凍可（約1週間）。解凍時はレンジ500Wで約3分。"
   }
 ];
 
-// 初期描画
+let recipeData = JSON.parse(localStorage.getItem("recipeData")) || initialRecipes;
+
+// APIキー管理
+function saveApiKey() {
+  const key = document.getElementById("apiKeyInput").value.trim();
+  if (key) {
+    localStorage.setItem("geminiApiKey", key);
+    alert("APIキーを保存しました！");
+  }
+}
+window.addEventListener("DOMContentLoaded", () => {
+  const key = localStorage.getItem("geminiApiKey");
+  if (key) document.getElementById("apiKeyInput").value = key;
+});
+
+// 食材タグ描画
 function renderTags() {
   const container = document.getElementById("tagList");
   container.innerHTML = "";
@@ -308,6 +323,7 @@ function renderTags() {
       } else {
         selected.push(item);
       }
+      localStorage.setItem("selectedIngredients", JSON.stringify(selected));
       renderTags();
       renderRecipes();
     });
@@ -320,22 +336,23 @@ function addNewIngredient() {
   const val = input.value.trim();
   if (val && !allIngredients.includes(val)) {
     allIngredients.push(val);
-    selected.push(val); // 追加時は自動で選択状態にする
+    selected.push(val);
+    localStorage.setItem("allIngredients", JSON.stringify(allIngredients));
+    localStorage.setItem("selectedIngredients", JSON.stringify(selected));
     input.value = "";
     renderTags();
     renderRecipes();
   }
 }
 
+// レシピ描画
 function renderRecipes() {
   const container = document.getElementById("recipeContainer");
   const searchKeyword = document.getElementById("searchInput").value.trim().toLowerCase();
   container.innerHTML = "";
 
   const matched = recipeData.filter(r => {
-    // 材料一致判定
     const hasIngredient = r.tags.some(t => selected.includes(t));
-    // 検索ワード判定
     const matchesSearch = searchKeyword === "" || 
       r.name.toLowerCase().includes(searchKeyword) || 
       r.tags.some(t => t.toLowerCase().includes(searchKeyword)) ||
@@ -352,10 +369,11 @@ function renderRecipes() {
   matched.forEach(r => {
     const card = document.createElement("div");
     card.className = "recipe-card";
+    const isAi = r.badge && r.badge.includes("AI");
     card.innerHTML = `
       <div class="recipe-header" onclick="this.parentElement.classList.toggle('open')">
         <div>
-          <div class="badge">${r.badge}</div>
+          <div class="badge ${isAi ? 'ai-badge' : ''}">${r.badge}</div>
           <div class="recipe-name">${r.name}</div>
           <div class="recipe-items">使うメイン食材: <strong>${r.tags.join("・")}</strong></div>
         </div>
@@ -380,6 +398,90 @@ function renderRecipes() {
     `;
     container.appendChild(card);
   });
+}
+
+// Gemini AI レシピ生成
+async function generateRecipeWithAI() {
+  const apiKey = localStorage.getItem("geminiApiKey");
+  if (!apiKey) {
+    alert("上部の「Gemini APIキー設定」にAPIキーを入力して保存してください。");
+    return;
+  }
+
+  const promptText = document.getElementById("aiPromptInput").value.trim();
+  const availableTags = selected.join("、");
+  const btn = document.getElementById("aiGenBtn");
+  
+  btn.disabled = true;
+  btn.textContent = "生成中...";
+
+  const systemInstruction = `
+あなたは胃腸にやさしい料理と作り置きの専門管理栄養士です。
+ユーザーの「現在ある食材」や「リクエスト」に基づき、吐き気や胃もたれがある人でも食べやすく、初心者でも失敗しないレシピを1品作成してください。
+
+必ず以下の厳密なJSONオブジェクトフォーマットのみを出力してください（Markdownタグや不要な解説文は一切含めないでください）：
+{
+  "name": "料理名",
+  "tags": ["メイン食材1", "メイン食材2"],
+  "badge": "AI提案・胃腸回復 など",
+  "materials": [
+    "食材名：分量（小さじ・大さじ・gまで明記）",
+    "調味料名：小さじ○"
+  ],
+  "steps": [
+    "【下準備】手順（火力・分数を明記）",
+    "【加熱】手順（弱火○分など）"
+  ],
+  "freeze": "【冷凍保存】小分け方法や解凍レンジ目安（○Wで○分）、日持ち期間"
+}
+`;
+
+  const userQuery = `
+【家にある食材】: ${availableTags || "鶏むね、ささみ、手羽元、米、大根、きのこ"}
+【ユーザーの希望】: ${promptText || "胃にやさしくて簡単にできる作り置きまたは1品"}
+`;
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: systemInstruction + "\n" + userQuery }] }],
+        generationConfig: { responseMimeType: "application/json" }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`APIエラー: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const recipeJsonText = data.candidates[0].content.parts[0].text;
+    const newRecipe = JSON.parse(recipeJsonText);
+    newRecipe.id = Date.now();
+
+    // 新しい食材タグがあれば追加
+    newRecipe.tags.forEach(t => {
+      if (!allIngredients.includes(t)) allIngredients.push(t);
+      if (!selected.includes(t)) selected.push(t);
+    });
+
+    recipeData.unshift(newRecipe); // 先頭に追加
+    localStorage.setItem("allIngredients", JSON.stringify(allIngredients));
+    localStorage.setItem("selectedIngredients", JSON.stringify(selected));
+    localStorage.setItem("recipeData", JSON.stringify(recipeData));
+
+    document.getElementById("aiPromptInput").value = "";
+    renderTags();
+    renderRecipes();
+    alert(`「${newRecipe.name}」を追加しました！`);
+  } catch (err) {
+    alert("レシピ生成に失敗しました。APIキーまたはネットワークを確認してください。");
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "AI生成";
+  }
 }
 
 renderTags();
