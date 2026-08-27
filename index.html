@@ -218,7 +218,7 @@ const initialRecipes = [
       "鶏むね肉：1枚（約300g）",
       "酒：大さじ1",
       "塩：小さじ1/2",
-      "砂糖：小さじ1/2（柔らかくなります）",
+      "砂糖：小さじ1/2",
       "おろし生姜：小さじ1/2"
     ],
     steps: [
@@ -227,68 +227,7 @@ const initialRecipes = [
       "【放置】炊飯器の「保温」ボタンを押し、弱熱保温で60分放置する（炊飯ボタンは押さない）。",
       "【仕上げ】取り出して粗熱を取り、お好みの厚さにスライスする。"
     ],
-    freeze: "【冷凍保存】完全に冷めた後、1食分ずつラップに隙間なく包み、ジッパー袋に入れて冷凍庫へ（約3週間）。レンジ500Wで約40秒温めて解凍。"
-  },
-  {
-    id: 2,
-    name: "手羽元と大根の生姜ポトフ風スープ",
-    tags: ["手羽元", "大根"],
-    badge: "胃腸回復・消化◎",
-    materials: [
-      "手羽元：4〜6本",
-      "大根：1/4本（1cmのいちょう切り）",
-      "水：600ml",
-      "コンソメキューブ：1個（または顆粒小さじ2）",
-      "おろし生姜：小さじ1",
-      "塩・こしょう：少々"
-    ],
-    steps: [
-      "【下準備】鍋に手羽元、大根、水600ml、コンソメ、生姜を入れる。",
-      "【沸騰まで】強火にかけ、沸騰したらアクをスプーンですくい取る。",
-      "【煮込み】フタをして弱火で20〜25分、大根が柔らかくなるまで煮込む。",
-      "【仕上げ】塩・こしょう少々で味を調える。"
-    ],
-    freeze: "【冷凍保存】粗熱が取れたらスープごと1食分ずつ冷凍用タッパーまたは耐熱ジッパー袋へ（約2週間保存可）。"
-  },
-  {
-    id: 3,
-    name: "レンジで3分！ささみときのこの温蒸し",
-    tags: ["ささみ", "きのこ"],
-    badge: "包丁不要・超時短",
-    materials: [
-      "ささみ：2本（筋を取る）",
-      "お好みのきのこ：1/2パック（手でほぐす）",
-      "酒：小さじ1",
-      "白だし：小さじ1",
-      "ポン酢：適量"
-    ],
-    steps: [
-      "【下準備】耐熱皿に手でちぎったささみときのこを並べる。",
-      "【下味】酒小さじ1、白だし小さじ1を全体に回しかける。",
-      "【加熱】ふんわりラップをかけ、電子レンジ（600W）で3分加熱する。",
-      "【仕上げ】レンジから出し、そのまま1分蒸らして火を通す。ポン酢をかけて召し上がれ。"
-    ],
-    freeze: "【下味冷凍】耐熱皿に入れる前の状態（生ささみ＋生きのこ＋調味料）を袋に入れて冷凍可能（約3週間）。レンジ600Wで4分半加熱。"
-  },
-  {
-    id: 4,
-    name: "ささみと卵のふわとろ生姜雑炊",
-    tags: ["ささみ", "米", "卵"],
-    badge: "胃もたれ・吐き気時",
-    materials: [
-      "ご飯：お茶碗軽く1杯（約120g）",
-      "ささみ：1本（細かく刻むかちぎる）",
-      "卵：1個（溶いておく）",
-      "水：300ml",
-      "白だし：大さじ1.5",
-      "おろし生姜：小さじ1/2"
-    ],
-    steps: [
-      "【煮込み】鍋に水300ml、白だし大さじ1.5、生姜、ご飯、ささみを入れて中火にかける。",
-      "【柔らかくする】沸騰したら弱火にして約5分コトコト煮る。",
-      "【卵を入れる】溶き卵を回し入れ、フタをして極弱火で30秒置き、火を止めて蒸らす。"
-    ],
-    freeze: "【小分け冷凍】完成した雑炊を1食分ずつ耐熱タッパーに入れて冷凍可（約1週間）。解凍時はレンジ500Wで約3分。"
+    freeze: "【冷凍保存】完全に冷めた後、1食分ずつラップに隙間なく包み冷凍へ（約3週間）。レンジ500Wで約40秒温めて解凍。"
   }
 ];
 
@@ -442,7 +381,7 @@ async function generateRecipeWithAI() {
 `;
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$){apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -456,7 +395,11 @@ async function generateRecipeWithAI() {
     }
 
     const data = await response.json();
-    const recipeJsonText = data.candidates[0].content.parts[0].text;
+    let recipeJsonText = data.candidates[0].content.parts[0].text;
+    
+    // AIが「```json」などの飾りをつけてきた場合、それを綺麗に削ぎ落とす処理を追加
+    recipeJsonText = recipeJsonText.replace(/```json/g, "").replace(/```/g, "").trim();
+
     const newRecipe = JSON.parse(recipeJsonText);
     newRecipe.id = Date.now();
 
@@ -476,8 +419,8 @@ async function generateRecipeWithAI() {
     renderRecipes();
     alert(`「${newRecipe.name}」を追加しました！`);
   } catch (err) {
-    alert("レシピ生成に失敗しました。APIキーまたはネットワークを確認してください。");
-    console.error(err);
+    alert("レシピの読み込みに失敗しました。もう一度試すか、別の食材で試してみてください。");
+    console.error("詳細エラー:", err);
   } finally {
     btn.disabled = false;
     btn.textContent = "AI生成";
